@@ -6,11 +6,64 @@ from crypto_core import GF256, SBoxGenerator, ECC, CustomAES
 
 st.set_page_config(page_title="Système de Chiffrement AES-ECDH", layout="wide")
 
-st.title("Système de Chiffrement AES-ECDH")
+# Custom CSS for premium look
 st.markdown("""
-Ce projet implémente un système de chiffrement **AES-128** utilisant une **S-box personnalisée** 
-et un échange de clés **ECDH** sur un corps fini $F_{17}$.
-""")
+<style>
+    .main {
+        background-color: #0e1117;
+        color: #e0e0e0;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 24px;
+        background-color: #161b22;
+        padding: 10px 20px;
+        border-radius: 10px 10px 0 0;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: transparent;
+        border-radius: 4px 4px 0 0;
+        gap: 1px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        color: #8b949e;
+        font-weight: 600;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #58a6ff !important;
+        border-bottom: 2px solid #58a6ff !important;
+    }
+    div[data-testid="stMetricValue"] {
+        color: #58a6ff;
+    }
+    .stButton>button {
+        background-color: #238636;
+        color: white;
+        border-radius: 6px;
+        border: 1px solid rgba(240,246,252,0.1);
+        padding: 10px 24px;
+        font-weight: 600;
+        transition: 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #2ea043;
+        border-color: #8b949e;
+    }
+    .stCodeBlock {
+        border: 1px solid #30363d;
+        border-radius: 6px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🛡️ Système de Chiffrement Hybride AES-ECDH")
+st.markdown("""
+<div style="background-color: #161b22; padding: 20px; border-radius: 10px; border-left: 5px solid #58a6ff; margin-bottom: 25px;">
+    Ce projet implémente un système de chiffrement <b>AES-128</b> utilisant une <b>S-box personnalisée</b> 
+    et un échange de clés <b>ECDH</b> sur un corps fini <b>F<sub>17</sub></b>.
+</div>
+""", unsafe_allow_html=True)
 
 
 st.sidebar.header("Paramètres Globaux")
@@ -139,6 +192,16 @@ with tab3:
                     st.session_state['last_ciphertext'] = ciphertext.hex().upper()
                     st.success("Chiffrement terminé.")
                     st.code(f"Résultat (HEX) : {st.session_state['last_ciphertext']}", language="text")
+                    
+                    with st.expander("🔍 Visualiser les étapes du premier bloc"):
+                        first_block = padded_data[0:16]
+                        steps = aes.encrypt_block_with_steps(first_block, st.session_state['aes_key'])
+                        
+                        cols = st.columns(3)
+                        for idx, (name, state) in enumerate(steps):
+                            with cols[idx % 3]:
+                                st.markdown(f"**{name}**")
+                                st.code(state.hex().upper(), language="text")
 
         with col_dec:
             st.subheader("Opération de Déchiffrement")
