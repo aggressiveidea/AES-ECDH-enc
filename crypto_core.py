@@ -19,15 +19,9 @@ class GF256:
         return p
 
     def inverse(self, n):
+        """Calculates the multiplicative inverse using n^(254) in GF(2^8)."""
         if n == 0:
             return 0
-       
-        res = 1
-        curr = n
-        for i in range(8):
-            if i > 0:
-                curr = self.multiply(curr, curr)
-                res = self.multiply(res, curr)
        
         res = 1
         curr = n
@@ -36,8 +30,8 @@ class GF256:
             res = self.multiply(res, curr)
         return res
 
-    def _ext_gcd_inv(self, a):
-       
+    def extended_gcd(self, a):
+        """Calculates the multiplicative inverse using the Extended Euclidean Algorithm."""
         if a == 0: return 0
         r0, r1 = self.poly | 0x100, a
         s0, s1 = 0, 1
@@ -188,10 +182,18 @@ class CustomAES:
             state[i] ^= round_key[i]
         return state
 
+    def _get_rcon(self):
+        """Generates Round Constants dynamically based on GF256 arithmetic."""
+        rcon = []
+        curr = 0x01
+        for _ in range(10):
+            rcon.append(curr)
+            curr = self.gf.multiply(curr, 0x02)
+        return rcon
+
     def key_expansion(self, key):
-       
         round_keys = [list(key)]
-        rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36]
+        rcon = self._get_rcon()
         
         for i in range(1, 11):
             prev_key = round_keys[-1]
@@ -212,19 +214,37 @@ class CustomAES:
         return round_keys
 
     def encrypt_block(self, block, key_bytes):
+        return self.encrypt_block_with_steps(block, key_bytes)[-1][1]
+
+    def encrypt_block_with_steps(self, block, key_bytes):
+        """Encrypts a block and returns all intermediate states with their names."""
         round_keys = self.key_expansion(key_bytes)
-        state = self._add_round_key(list(block), round_keys[0])
+        steps = [] # List of (step_name, state_bytes)
+        
+        state = list(block)
+        steps.append(("Initial State", bytes(state)))
+        
+        state = self._add_round_key(state, round_keys[0])
+        steps.append(("Initial AddRoundKey", bytes(state)))
         
         for i in range(1, 10):
             state = self._sub_bytes(state)
+            steps.append((f"Round {i} - SubBytes", bytes(state)))
             state = self._shift_rows(state)
+            steps.append((f"Round {i} - ShiftRows", bytes(state)))
             state = self._mix_columns(state)
+            steps.append((f"Round {i} - MixColumns", bytes(state)))
             state = self._add_round_key(state, round_keys[i])
+            steps.append((f"Round {i} - AddRoundKey", bytes(state)))
             
         state = self._sub_bytes(state)
+        steps.append(("Round 10 - SubBytes", bytes(state)))
         state = self._shift_rows(state)
+        steps.append(("Round 10 - ShiftRows", bytes(state)))
         state = self._add_round_key(state, round_keys[10])
-        return bytes(state)
+        steps.append(("Final Ciphertext", bytes(state)))
+        
+        return steps
 
     def decrypt_block(self, block, key_bytes):
         round_keys = self.key_expansion(key_bytes)

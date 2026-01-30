@@ -29,7 +29,7 @@ Le corps de Galois $GF(2^8)$ est une structure finie de 256 éléments. Chaque �
 
 ### 2.2 Cryptographie sur Courbes Elliptiques (ECC)
 L'échange de clés repose sur une courbe de Weierstrass sur le corps fini $F_{17}$ :
-$$y^2 \equiv x^3 + 3x + 5 \pmod{17}$$
+$$y^2 \equiv x^3 + 2x + 2 \pmod{17}$$
 
 **Loi d'addition de points :**
 Pour deux points $P(x_1, y_1)$ et $Q(x_2, y_2)$, le point $R = P+Q$ est calculé en trouvant la pente $\lambda$ (tangente ou sécante) et en appliquant les formules de duplication ou d'addition géométrique modulaires.

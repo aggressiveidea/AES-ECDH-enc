@@ -27,8 +27,8 @@ def get_crypto_core(poly):
     sbox_gen = SBoxGenerator(poly)
     aes = CustomAES(sbox_gen)
     
-    ecc = ECC(a=3, b=5, p=17)
-    G = (1, 3)
+    ecc = ECC(a=2, b=2, p=17)
+    G = (5, 1)
     return sbox_gen, aes, ecc, G
 
 sbox_gen, aes, ecc, G = get_crypto_core(poly_choice)
@@ -39,7 +39,7 @@ tab1, tab2, tab3, tab4 = st.tabs(["Échange de Clés ECDH", "Analyse de la S-Box
 
 with tab1:
     st.header("Échange de Clés Elliptic Curve Diffie-Hellman sur $F_{17}$")
-    st.write("Équation de la courbe : $y^2 = x^3 + 3x + 5 \pmod{17}$ | Point de base $G = (1, 3)$")
+    st.write("Équation de la courbe : $y^2 = x^3 + 2x + 2 \pmod{17}$ | Point de base $G = (5, 1)$")
     
     col1, col2 = st.columns(2)
     
@@ -177,11 +177,11 @@ with tab4:
     
     with col_a:
         st.subheader("Points sur la courbe $F_{17}$")
-        st.write("Visualisation des points $(x, y)$ satisfaisant $y^2 = x^3 + 3x + 5 \pmod{17}$ :")
+        st.write("Visualisation des points $(x, y)$ satisfaisant $y^2 = x^3 + 2x + 2 \pmod{17}$ :")
         points = []
         for x in range(17):
             for y in range(17):
-                if (y**2 - (x**3 + 3*x + 5)) % 17 == 0:
+                if (y**2 - (x**3 + 2*x + 2)) % 17 == 0:
                     points.append((x, y))
         
         fig, ax = plt.subplots(figsize=(6, 4))
