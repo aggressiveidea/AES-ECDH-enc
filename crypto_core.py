@@ -21,16 +21,14 @@ class GF256:
     def inverse(self, n):
         if n == 0:
             return 0
-        # In GF(2^8), n^255 = 1, so n^254 = n^-1
-        # n^254 = n^128 * n^64 * n^32 * n^16 * n^8 * n^4 * n^2
+       
         res = 1
         curr = n
         for i in range(8):
             if i > 0:
                 curr = self.multiply(curr, curr)
                 res = self.multiply(res, curr)
-        # Power 254 = 11111110 binary.
-        # So we need res = n^2 * n^4 * n^8 * n^16 * n^32 * n^64 * n^128
+       
         res = 1
         curr = n
         for i in range(1, 8): # i=1 to 7
@@ -39,7 +37,7 @@ class GF256:
         return res
 
     def _ext_gcd_inv(self, a):
-        # Extended Euclidean Algorithm for GF(2^8)
+       
         if a == 0: return 0
         r0, r1 = self.poly | 0x100, a
         s0, s1 = 0, 1
@@ -70,7 +68,6 @@ class SBoxGenerator:
         sbox = [0] * 256
         for i in range(256):
             inv = self.gf.inverse(i)
-            # Affine transformation
             # s = inv ^ (inv <<< 1) ^ (inv <<< 2) ^ (inv <<< 3) ^ (inv <<< 4) ^ 0x63
             x = inv
             res = 0x63
@@ -87,7 +84,7 @@ class SBoxGenerator:
         return inv
 
 class ECC:
-    """Elliptic Curve arithmetic over F_p."""
+ 
     def __init__(self, a, b, p):
         self.a = a
         self.b = b
@@ -127,7 +124,7 @@ class ECC:
         return res
 
 class CustomAES:
-    """Full AES-128 implementation using the custom S-box."""
+  
     def __init__(self, sbox_gen):
         self.sbox = sbox_gen.sbox
         self.inv_sbox = sbox_gen.inv_sbox
@@ -144,11 +141,7 @@ class CustomAES:
         return state
 
     def _shift_rows(self, state):
-        # state is 16 bytes representing 4x4 matrix column-major
-        # [0 4 8  12]
-        # [1 5 9  13]
-        # [2 6 10 14]
-        # [3 7 11 15]
+      
         res = [0] * 16
         # Row 0: no shift
         res[0], res[4], res[8], res[12] = state[0], state[4], state[8], state[12]
@@ -196,8 +189,7 @@ class CustomAES:
         return state
 
     def key_expansion(self, key):
-        # AES-128 key expansion logic
-        # For simplicity and given the 1000-line limit, we'll implement a functional expansion
+       
         round_keys = [list(key)]
         rcon = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36]
         

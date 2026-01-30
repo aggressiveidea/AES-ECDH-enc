@@ -4,7 +4,6 @@ import hashlib
 import matplotlib.pyplot as plt
 from crypto_core import GF256, SBoxGenerator, ECC, CustomAES
 
-# Page configuration
 st.set_page_config(page_title="Système de Chiffrement AES-ECDH", layout="wide")
 
 st.title("Système de Chiffrement AES-ECDH")
@@ -13,7 +12,7 @@ Ce projet implémente un système de chiffrement **AES-128** utilisant une **S-b
 et un échange de clés **ECDH** sur un corps fini $F_{17}$.
 """)
 
-# Sidebar for configuration
+
 st.sidebar.header("Paramètres Globaux")
 poly_choice = st.sidebar.selectbox("Polynôme Irréductible GF(2^8)", 
                                   options=[0x11D, 0x165, 0x14D, 0x11B],
@@ -22,12 +21,12 @@ poly_choice = st.sidebar.selectbox("Polynôme Irréductible GF(2^8)",
 st.sidebar.markdown("---")
 st.sidebar.info("Note : Le corps $F_{17}$ est utilisé pour l'ECDH, tandis que la S-box est générée via un polynôme irréductible dans $GF(2^8)$.")
 
-# Initialize Crypto Core
+
 @st.cache_resource
 def get_crypto_core(poly):
     sbox_gen = SBoxGenerator(poly)
     aes = CustomAES(sbox_gen)
-    # ECDH: y^2 = x^3 + 3x + 5 mod 17
+    
     ecc = ECC(a=3, b=5, p=17)
     G = (1, 3)
     return sbox_gen, aes, ecc, G
@@ -37,7 +36,7 @@ sbox_gen, aes, ecc, G = get_crypto_core(poly_choice)
 # Tabs
 tab1, tab2, tab3, tab4 = st.tabs(["Échange de Clés ECDH", "Analyse de la S-Box", "Chiffrement & Déchiffrement", "Courbe et Complexité"])
 
-# Tab 1: ECDH
+
 with tab1:
     st.header("Échange de Clés Elliptic Curve Diffie-Hellman sur $F_{17}$")
     st.write("Équation de la courbe : $y^2 = x^3 + 3x + 5 \pmod{17}$ | Point de base $G = (1, 3)$")
@@ -76,7 +75,7 @@ with tab1:
     else:
         st.error("Erreur dans le calcul du secret partagé.")
 
-# Tab 2: S-Box
+
 with tab2:
     st.header("Analyse de la S-Box Personnalisée")
     st.write(f"Polynôme générateur pour $GF(2^8)$ : **0x{poly_choice:X}**")
@@ -92,11 +91,11 @@ with tab2:
     - Inversion : Basée sur l'identité $a^{255} \\equiv 1$ dans $GF(2^8)$, donc $a^{-1} = a^{254}$.
     """)
     
-    # Compare with standard
+    
     std_sbox_gen = SBoxGenerator(0x11B)
     
     if st.checkbox("Afficher la table de substitution (S-Box)"):
-        # Display as a grid
+        
         sbox_array = np.array(sbox_gen.sbox).reshape(16, 16)
         st.table(sbox_array)
 
@@ -109,7 +108,6 @@ with tab2:
     if num_diffs > 0:
         st.write("Le changement de polynôme modifie la structure algébrique de la substitution, ce qui est l'objectif du projet.")
 
-# Tab 3: Encryption & Decryption
 with tab3:
     st.header("Chiffrement et Déchiffrement AES-128")
     
@@ -172,7 +170,6 @@ with tab3:
                     except Exception as e:
                         st.error(f"Erreur lors du déchiffrement : {e}")
 
-# Tab 4: Curve and Complexity
 with tab4:
     st.header("Analyse Mathématique et Complexité")
     
