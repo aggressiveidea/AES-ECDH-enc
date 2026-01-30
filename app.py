@@ -35,7 +35,7 @@ def get_crypto_core(poly):
 sbox_gen, aes, ecc, G = get_crypto_core(poly_choice)
 
 # Tabs
-tab1, tab2, tab3, tab4 = st.tabs(["Échange de Clés ECDH", "Analyse de la S-Box", "Chiffrement AES", "Courbe et Complexité"])
+tab1, tab2, tab3, tab4 = st.tabs(["Échange de Clés ECDH", "Analyse de la S-Box", "Chiffrement & Déchiffrement", "Courbe et Complexité"])
 
 # Tab 1: ECDH
 with tab1:
@@ -79,7 +79,18 @@ with tab1:
 # Tab 2: S-Box
 with tab2:
     st.header("Analyse de la S-Box Personnalisée")
-    st.write(f"Générée avec le polynôme irréductible : 0x{poly_choice:X}")
+    st.write(f"Polynôme générateur pour $GF(2^8)$ : **0x{poly_choice:X}**")
+    
+    st.markdown("""
+    **Fondamentaux mathématiques (Corps de Galois) :**
+    La S-box est construite dans le corps fini **$GF(2^8)$**, aussi appelé corps de Galois à 256 éléments. 
+    Les opérations d'addition sont réalisées par des XOR ($\oplus$) et la multiplication est effectuée modulo le polynôme irréductible choisi.
+    
+    Propriétés du corps $GF(2^8)$ utilisé :
+    - Éléments : Polynômes de degré < 8 sur $GF(2)$.
+    - Addition : Addition de coefficients modulo 2 (XOR bit à bit).
+    - Inversion : Basée sur l'identité $a^{255} \\equiv 1$ dans $GF(2^8)$, donc $a^{-1} = a^{254}$.
+    """)
     
     # Compare with standard
     std_sbox_gen = SBoxGenerator(0x11B)
@@ -98,45 +109,68 @@ with tab2:
     if num_diffs > 0:
         st.write("Le changement de polynôme modifie la structure algébrique de la substitution, ce qui est l'objectif du projet.")
 
-# Tab 3: Encryption
+# Tab 3: Encryption & Decryption
 with tab3:
-    st.header("Plateforme de Chiffrement AES-128")
+    st.header("Chiffrement et Déchiffrement AES-128")
     
     if 'aes_key' not in st.session_state:
         st.warning("Veuillez effectuer l'échange ECDH dans le premier onglet pour dériver une clé.")
     else:
-        plaintext = st.text_area("Message en clair", value="Message secret avec S-Box personnalisée.")
+        col_enc, col_dec = st.columns(2)
         
-        if st.button("Chiffrer"):
-            # Simple padding to 16 bytes
-            data = plaintext.encode()
-            pad_len = 16 - (len(data) % 16)
-            padded_data = data + bytes([pad_len] * pad_len)
+        with col_enc:
+            st.subheader("Opération de Chiffrement")
+            plaintext = st.text_area("Texte en clair à chiffrer", value="Message secret avec S-Box personnalisée.")
             
-            # Encryption
-            ciphertext = bytearray()
-            for i in range(0, len(padded_data), 16):
-                block = padded_data[i:i+16]
-                enc_block = aes.encrypt_block(block, st.session_state['aes_key'])
-                ciphertext.extend(enc_block)
+            if st.button("Lancer le Chiffrement"):
+                data = plaintext.encode()
+                pad_len = 16 - (len(data) % 16)
+                padded_data = data + bytes([pad_len] * pad_len)
+                
+                ciphertext = bytearray()
+                for i in range(0, len(padded_data), 16):
+                    block = padded_data[i:i+16]
+                    try:
+                        enc_block = aes.encrypt_block(block, st.session_state['aes_key'])
+                        ciphertext.extend(enc_block)
+                    except Exception as e:
+                        st.error(f"Erreur lors du chiffrement : {e}")
+                        break
+                
+                if ciphertext:
+                    st.session_state['last_ciphertext'] = ciphertext.hex().upper()
+                    st.success("Chiffrement terminé.")
+                    st.code(f"Résultat (HEX) : {st.session_state['last_ciphertext']}", language="text")
+
+        with col_dec:
+            st.subheader("Opération de Déchiffrement")
+            default_hex = st.session_state.get('last_ciphertext', "")
+            cipher_hex = st.text_area("Texte chiffré (HEX) à déchiffrer", value=default_hex)
             
-            st.subheader("Résultats")
-            st.code(f"Ciphertext (HEX) : {ciphertext.hex().upper()}", language="text")
-            
-            # Decryption
-            decrypted_data = bytearray()
-            for i in range(0, len(ciphertext), 16):
-                block = ciphertext[i:i+16]
-                dec_block = aes.decrypt_block(block, st.session_state['aes_key'])
-                decrypted_data.extend(dec_block)
-            
-            # Unpadding
-            unpad_len = decrypted_data[-1]
-            try:
-                final_text = decrypted_data[:-unpad_len].decode()
-                st.success(f"Message déchiffré : {final_text}")
-            except:
-                st.error("Erreur de déchiffrement.")
+            if st.button("Lancer le Déchiffrement"):
+                if not cipher_hex:
+                    st.error("Veuillez entrer une chaîne hexadécimale.")
+                else:
+                    try:
+                        ciphertext_bytes = bytes.fromhex(cipher_hex)
+                        if len(ciphertext_bytes) % 16 != 0:
+                            st.warning("La longueur doit être un multiple de 16 octets.")
+                        
+                        decrypted_data = bytearray()
+                        for i in range(0, len(ciphertext_bytes), 16):
+                            block = ciphertext_bytes[i:i+16]
+                            dec_block = aes.decrypt_block(block, st.session_state['aes_key'])
+                            decrypted_data.extend(dec_block)
+                        
+                        unpad_len = decrypted_data[-1]
+                        if 1 <= unpad_len <= 16:
+                            final_text = decrypted_data[:-unpad_len].decode()
+                            st.success("Déchiffrement réussi.")
+                            st.write(f"Message extrait : {final_text}")
+                        else:
+                            st.error("Erreur de padding.")
+                    except Exception as e:
+                        st.error(f"Erreur lors du déchiffrement : {e}")
 
 # Tab 4: Curve and Complexity
 with tab4:
@@ -153,7 +187,6 @@ with tab4:
                 if (y**2 - (x**3 + 3*x + 5)) % 17 == 0:
                     points.append((x, y))
         
-        # Plotting the points
         fig, ax = plt.subplots(figsize=(6, 4))
         if points:
             px, py = zip(*points)
@@ -173,21 +206,22 @@ with tab4:
             
         st.pyplot(fig)
         
-        st.write(f"Nombre total de points : {len(points) + 1} (incluant le point à l'infini)")
+        st.write(f"Nombre total de points : {len(points) + 1}")
         with st.expander("Voir la liste des points"):
             st.write(points)
 
     with col_b:
-        st.subheader("Complexité des Algorithmes")
+        st.subheader("Complexité et Structures Algébriques")
         st.markdown("""
-        **1. ECDH sur $F_p$** :
-        - Addition de points : $O(\log p)$ opérations sur les bits.
-        - Multiplication scalaire : $O(\log k \cdot \log p)$ où $k$ est le scalaire (clé privée).
-        - Problème du Logarithme Discret (DLP) : Extrêmement difficile sur de grandes courbes (ex: Curve25519).
+        **1. Corps Finis et Échanges (ECDH)** :
+        - Le protocole repose sur le corps premier **$F_{17}$**.
+        - Addition de points : $O(\log p)$ opérations élémentaires.
+        - Multiplication scalaire : Algorithm "double-and-add" en $O(\log k \cdot \log p)$.
         
-        **2. AES-128** :
-        - Complexité temporelle : $O(N \cdot R)$ où $N$ est le nombre de blocs et $R=10$ est le nombre de rounds.
-        - S-box personnalisée : Le calcul d'inverse dans $GF(2^8)$ via l'algorithme d'Euclide étendu a une complexité de $O(m^2)$ avec $m=8$.
+        **2. Corps d'Extension et S-box (AES)** :
+        - Utilisation du corps d'extension **$GF(2^8)$**.
+        - Le calcul de l'inverse multiplicatif est l'étape critique de la S-box.
+        - Sa complexité est en $O(m^2)$ où $m$ est le degré du polynôme ($m=8$).
         """)
 
 st.markdown("---")
